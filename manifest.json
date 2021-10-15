@@ -1,0 +1,61 @@
+{
+
+	"author": "angel riera",
+
+	"background": {
+		"scripts": ["common.js","background.js"]
+	},
+
+	"browser_action": {
+		"browser_style": false,
+		"default_icon": {
+			"16": "icons/blocksite16.png",
+			"32": "icons/blocksite32.png"
+		},
+		"default_title": "blocksite GB"
+	},
+
+	"browser_specific_settings": {
+		"gecko": {
+		  "id": "angelrieramos@protonmail.com"
+		}
+	},
+
+	"content_scripts": [
+		{
+			"matches": ["<all_urls>"],
+			"js": ["content.js"]
+		}
+	],
+
+	"description": "goal based block. e.g. block site until you spend 30 minutes on a productivity site",
+
+	"icons": {
+		"48": "icons/blocksite48.png",
+		"96": "icons/blocksite96.png"
+	},
+
+	"manifest_version": 2,
+
+	"name": "blocksite GB",
+
+	"optional_permissions": [
+		"<all_urls>"
+	],
+
+	"options_ui": {
+		"page": "options.html",
+		"open_in_tab": true
+	},
+
+	"permissions": [
+		"alarms",
+		"downloads",
+		"menus",
+		"storage",
+		"tabs",
+		"webNavigation"
+	],
+
+	"version": "0.0.1"
+}
