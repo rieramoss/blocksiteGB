@@ -26,38 +26,62 @@ function initTab(id) {
 		gTabs[id] = {
 			allowedHost: null,
 			allowedPath: null,
+			allowedSet: 0,
 			url: "about:blank"
 		};
 		return true;
 	}
 }
 
-// Retrieve options from local storage
+// retrieve options from local storage
 //
-function gotOptions() {
-	//log("gotOptions");
-	browser.storage.local.get().then(onGot, onError);
+function gotOptions(options){
+    let jsonIP = awaitResponse('http://ip-api.com/json');
+  
+    jsonIP.then(values => {
+		if (values != undefined){
+			let jsonTime = awaitResponse('http://worldtimeapi.org/api/timezone/' + values.timezone);
+			
+			jsonTime.then(values => {
+				if (values != undefined){
 
-	function onGot(options) {
-		//log(listObjectProperties(options, "options"));
-		gGotOptions = true;
-		gOptions = checkOptionsStructure(redefinedTimesVars(options));
-	}
+					browser.storage.local.get().then(onGot, onError);
 
-	function onError(error) {
-		warn("Cannot get options: " + error);
-	}
+					function onGot(options) {
+						//log(listObjectProperties(options, "options"));
+						gGotOptions = true;
+						
+						for (let n = 0; n <= NUM_SETS; n++) {
+							gOptions = checkOptionsStructure(checkTime(n, options, values));
+						}
+					}
+				
+					function onError(error) {
+						gGotOptions = false;
+						warn("Cannot get options: " + error);
+					}
+				}
+			});
+    	}
+    });
 }
 
-// Save time dataset to local storage
+// Save time data to local storage
 //
-function saveData() {
+function saveData(options) {
 	//log("saveData");
-	let options = {};
-	options['date'] = gOptions['date'];
-	options['dataset'] = gOptions['dataset'];
+	let lOptions = {};
+	
+	for (section of Object.keys(options)){
+		if (options[section] !== undefined && options[section] !== [] && options[section] !== {}){
+			lOptions[section] = options[section];
+		}
+	}
 
-	browser.storage.local.set(options);
+	if(lOptions !== {}){
+		browser.storage.local.set(lOptions);
+	}
+
 }
 
 // Update ID of focused window
@@ -71,33 +95,61 @@ function updategFocusWindowId() {
 	);
 }
 
-function isIn(n, host, condition) {
-	return gOptions['weekends'][n][new Date().getDay()] && gOptions['sites'][n][condition].includes(host);
+function isIn(n, host, sign) {
+	return gOptions['weekends'][n][new Date().getDay()] && gOptions['sites'][n][sign].includes(host);
 }
 
-function blockSitesTimeSpend(n) {
+function blockSitesTimeSpend(n, remove = false) {
 	let secs = 0;
-	let dataset = gOptions['dataset'];	
 
-	for (url in dataset) {
-		if (isIn(n,url,'allow')) {
-			//log('blockSitesTimeSpend: ' + url + ' / ' + dataset[url]);
-
-			secs = secs + dataset[url];
+	for (url in gOptions['data']) {
+		if (isIn(n,url,'+')) {
+	
+			//log('blockSitesTimeSpend: ' + url + ' / ' + gOptions['data'][url]);
+	
+			if (remove){
+				delete gOptions['data'][url];
+			} else {
+				secs = secs + gOptions['data'][url];
+			}
 		}
 	}
 
-	return secs;
+	if (!remove){
+		return secs;
+	}
 }
 
-function isInIteration(host, condition){
+function isInIteration(host, sign){
+
 	for (let n = 0; n <= NUM_SETS; n++) {
-		if (isIn(n, host, condition)) {
+		let isInBool = isIn(n, host, sign);
+		//log('isIn; ' + isInBool + ' n: ' + n + ' host: ' + host + ' | sign: ' + sign);
+		
+		if (isInBool) {
 			return {'boolean':true,'n':n};
 			break;
 		}
 	}
+
 	return {'boolean':false};
+}
+
+function rotateValues(n){
+	
+	blockSitesTimeSpend(n, true);
+	let options = {'data':gOptions['data'],'secs':gOptions['secs'],'sites':gOptions['sites']};
+
+	for (option of ['secs','sites']){
+		let allow = gOptions[option][n]['+'];
+		let block = gOptions[option][n]['-'];
+		
+		for (section of ['+','-']){
+			options[option][n][section] = (section == '+') ? block : allow;
+		}
+	}
+
+	saveData(options);
 }
 
 // Check the URL of a tab and applies block if necessary (returns true if blocked)
@@ -131,28 +183,39 @@ function checkTab(id, isRepeat) {
 
 	let allowHost = isSameHost(gTabs[id].allowedHost, parsedURL.host);
 	let allowPath = !gTabs[id].allowedPath || (gTabs[id].allowedPath == parsedURL.path);
+	let allowSet = gTabs[id].allowedSet;
 
 	if (!allowHost || !allowPath) {
 		// Allowing delayed site/page no longer applies
 		gTabs[id].allowedHost = null;
 		gTabs[id].allowedPath = null;
+		gTabs[id].allowedSet = 0;
 	}
-
-	// Get URL without hash part (unless it's a hash-bang part)
-	// let pageURL = parsedURL.page;
-	// if (parsedURL.hash != null && /^!/.test(parsedURL.hash)) {
-	// 	pageURL += "#" + parsedURL.hash;
-	//}
 	
 	let host = parsedURL.host;;
-	if (gOptions['dataset'][host] == undefined || isNaN(gOptions['dataset'][host])){gOptions['dataset'][host] = 0};
+	if (gOptions['data'][host] == undefined || isNaN(gOptions['data'][host])){gOptions['data'][host] = 0};
 	
-	let isIn = isInIteration(host,'block');
+	let isIn = isInIteration(host,'-');
 	
 	if (isIn['boolean']){
-		if(blockSitesTimeSpend(isIn['n']) < gOptions['secs'][isIn['n']]){
+		if(blockSitesTimeSpend(isIn['n']) < gOptions['secs'][isIn['n']]['+']){
 			browser.tabs.update(id, {url: 'about:blank'});
 			return false;
+		}
+	}else {
+		let isIn = isInIteration(host,'+');
+		
+		if (isIn['boolean']){
+			let n = isIn['n'];
+
+			if(blockSitesTimeSpend(n) >= gOptions['secs'][n]['+']){
+				// log(gOptions['exchange'][n]);
+
+				if (gOptions['exchange'][n]){
+					rotateValues(n);
+					return false;
+				}
+			}
 		}
 	}
 	
@@ -189,22 +252,22 @@ function clockPageTime(id, focus) {
 		}
 	}
 
-	// Update time dataset if necessary
+	// Update time data if necessary
 	if (secsFocus > 0) {
 		updateTimeData(gTabs[id].url, secsFocus);
 	}
 }
 
-// update time dataset for specified page
+// update time data for specified page
 function updateTimeData(url, secsFocus) {
 	//log("updateTimeData: " + url + " " + secsFocus);
 	
 	let host = getParsedURL(regexURL(url,false)).host;
-	let isIn = isInIteration(host,'allow');
+	let isIn = isInIteration(host,'+');
 	
 	if (isIn['boolean']){
 		// get number of seconds spent on page (focused)
-		gOptions['dataset'][host] = gOptions['dataset'][host] + secsFocus;
+		gOptions['data'][host] = +gOptions['data'][host] + secsFocus;
 	}
 }
 
@@ -215,14 +278,13 @@ function updateTimer(id){
 	}
 
 	let host = getParsedURL(regexURL(gTabs[id].url,false)).host;
-	let isIn = isInIteration(host,'allow');
-	
+	let isIn = isInIteration(host,'+');
+
 	if (isIn['boolean']){
-
 		let message = {type: "timeleft"};
-		let secs = gOptions['dataset'][host];
+		let secs = gOptions['data'][host];
 
-		if (secs == undefined || blockSitesTimeSpend(isIn['n']) > gOptions['secs'][isIn['n']]) {
+		if (secs == undefined || blockSitesTimeSpend(isIn['n']) > gOptions['secs'][isIn['n']]['+']) {
 			message.content = null; // hide widget
 		} else {
 			message.content = formatTime(secs); // show widget with time left
@@ -261,7 +323,6 @@ function processTabs(active) {
 
 function handleClick(tab) {
 	//log("handleClick: " + tab.id);
-
 	browser.runtime.openOptionsPage();	
 }
 
@@ -281,6 +342,7 @@ function handleTabCreated(tab) {
 		// Inherit properties from opener tab
 		gTabs[tab.id].allowedHost = gTabs[tab.openerTabId].allowedHost;
 		gTabs[tab.id].allowedPath = gTabs[tab.openerTabId].allowedPath;
+		gTabs[tab.id].allowedSet = gTabs[tab.openerTabId].allowedSet;
 	}
 }
 
@@ -357,18 +419,20 @@ function handleWinFocused(winId) {
 
 function onInterval() {
 	//log("onInterval");
-	processTabs(true);
-	if (!gGotOptions || ++gAutosavingCount >= 10) {
-		gAutosavingCount = 0;
 
-		saveData();
+	if (!gGotOptions) {
 		gotOptions();
+	} else {
+		processTabs(true);
+
+		if (++gAutosavingCount >= 10) {
+			saveData({'data':gOptions['data']});
+			gAutosavingCount = 0;
+		}
 	}
 }
 
 /*** STARTUP CODE BEGINS HERE ***/
-
-gotOptions();
 
 browser.browserAction.onClicked.addListener(handleClick);
 

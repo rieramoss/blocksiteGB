@@ -1,65 +1,77 @@
 <!DOCTYPE html>
 
-<html lang="us">
+<html lang='us'>
 
 	<head>
-		<meta charset="utf-8">
-		<title>blocksite GB</title>
+		<meta charset='utf-8'>
+		<title>blocksite</title>
 		
-		<link href="jquery-ui/jquery-ui.min.css" rel="stylesheet">
-		<link href="options.css" rel="stylesheet">
+		<link href='jquery-ui/jquery-ui.min.css' rel='stylesheet'>
+		<link href='options.css' rel='stylesheet'>
 
-		<link href="icons/blocksite16.ico" rel="icon" type="image/x-icon">
-		<link href="icons/blocksite16.ico" rel="shortcut icon" type="image/x-icon">
+		<link href='icons/blocksite16.ico' rel='icon' type='image/x-icon'>
+		<link href='icons/blocksite16.ico' rel='shortcut icon' type='image/x-icon'>
 	</head>
 
 	<body>
-		<div id="form-container">
-			<form id="form" style="display: none;">
-				<div id="panes">
-					<h3>b0<span id="name0"></span></h3>
-					<div id="b0">
-						<p><label>enter both the sites to be blocked and the allowed sites (separated by a space)</label></p>
-						<div>
-							<input id="sites0" type="text" size="61" placeholder="e.g. -site0.com site1.com">
-						</div>
-						<p>
-							<strong>note</strong>
-							use '-' as prefix for sites to block
-						</p>
+		<div id='form-container'>
+			<form id='form' style='display: none;'>
+				<div id='panes'>
+					<h3>b0<span id='name0'></span></h3>
+					<div id='b0'>
+						blocked and allowed sites <b>(separated by a space)</b>
+						
+						<br>
+						
+						<p><input id='sites0' type='text' size='61' placeholder='e.g. site0 +site1'></p>
+						
+						<p><b>note</b> use '+' as prefix for allowed sites</p>
+						
 						<hr>
-						<p><label>time to be served in the allowed sites to unblock the blocked sites</label></p>
-						<p>
-							<input id="mins0" type="text" size="4" title="leave blank for no time limit">
-							&nbsp;mins
+						
+						<p>time to comply in sites allowed to unblock</p>
+						
+						<p><input id='aMins0' type='text' size='4' maxlength="4"><b>  mins</b></p>
+					
+						<p>days on which to block these sites</p>
+						
+						<p id='buttons'>
+							<input id='day00' type='checkbox'><label for='day00'> sun</label>
+							&nbsp;
+							<input id='day10' type='checkbox'><label for='day10'> mon</label>
+							&nbsp;
+							<input id='day20' type='checkbox'><label for='day20'> tue</label>
+							&nbsp;
+							<input id='day30' type='checkbox'><label for='day30'> wed</label>
+							&nbsp;
+							<input id='day40' type='checkbox'><label for='day40'> thu</label>
+							&nbsp;
+							<input id='day50' type='checkbox'><label for='day50'> fri</label>
+							&nbsp;
+							<input id='day60' type='checkbox'><label for='day60'> sat</label>
 						</p>
-						<p><label>select the days on which this blockset is active</label></p>
-						<p>
-							<input id="day00" type="checkbox"><label for="day00">sun</label>
-							&nbsp;
-							<input id="day10" type="checkbox"><label for="day10">mon</label>
-							&nbsp;
-							<input id="day20" type="checkbox"><label for="day20">tue</label>
-							&nbsp;
-							<input id="day30" type="checkbox"><label for="day30">wed</label>
-							&nbsp;
-							<input id="day40" type="checkbox"><label for="day40">thu</label>
-							&nbsp;
-							<input id="day50" type="checkbox"><label for="day50">fri</label>
-							&nbsp;
-							<input id="day60" type="checkbox"><label for="day60">sat</label>
-						</p>
+						
+						<hr>
+
+						<p><button id="showAdvOpts0" type="button">show advanced options</button></p>
+
+						<div id="advOpts0" style="display: none;">
+							<p>day starts at‎‎‏‏‎ ‎‏‏‎ ‎<input id='time0' type='text' size='12' maxlength='4'></p>
+							<p><input id='exchange0' type='checkbox'>  allowed sites become blocked after determined time, and so on continuosly</p>
+
+							<p id='bMinsDiv0'><input id='bMins0' type='text' size='4' maxlength="4">  blocked sites <b>mins</b></p>
+						</div>
 					</div>
 				</div>
-				<p style="text-align: center;">
-					<button id="saveOptions" type="button">save</button>
+				<p style='text-align: center;'>
+					<button id='saveOptions' type='button'>save</button>
 				</p>
 			</form>
 		</div>
-		<script src="jquery-ui/external/jquery/jquery.js"></script>
-		<script src="jquery-ui/jquery-ui.min.js"></script>
-	    <script src="common.js"></script>
-	    <script src="options.js"></script>
+		<script src='jquery-ui/external/jquery/jquery.js'></script>
+		<script src='jquery-ui/jquery-ui.min.js'></script>
+	    <script src='common.js'></script>
+	    <script src='options.js'></script>
 	</body>
 
 </html>

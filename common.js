@@ -4,41 +4,90 @@
 const NUM_SETS = 9;
 
 function checkOptionsStructure(options){
-	for (let n = 0; n <= 2; n++){
-		let vars = [['dataset','date'],['secs','weekends'],['sites']][n];
-		
-		for (let i = 0; i <= vars.length-1; i++){
-			let section = vars[i];
-           
-			if (options[section] == undefined){
-				options[section] = (n == 0) ? [{},getDateString()][i]: [];
-                
-				if (n > 0){
-                    for (let x = 0; x <= NUM_SETS; x++){
-						let localIndex = n-1;
-                        values = [['',[false,true,true,true,true,true,false]],[{'allow':[],'block':[]}]];      
-                        options[section].push(values[localIndex][i]);
-                    };
-                };
-            }
+	let sections = ['data','time','exchange','sites','secs','weekends'];
+
+	for (let section of sections){
+
+		if (options[section] == undefined){
+
+			//log('checkOptionsStructure: ' + section);
+			options[section] = (section == 'data') ? {} : [];
+
+			if (section !== 'data'){
+				for (let n = 0; n <= NUM_SETS; n++){
+					let vars = ['0000',false,{'+':[],'-':[]},{'+':'','-':''},[false,true,true,true,true,true,false]];
+					options[section].push(vars[(sections.indexOf(section) - 1)]);
+				};
+			}
 		}
 	}
+
+	/*log(`													options
+	data ${options['data']}
+	exchange ${options['exchange']}
+	sites ${options['sites']}
+	secs ${options['secs']}
+	weekends ${options['weekends']}
+	time ${options['time']}
+	`);
+	*/
 	return options;
 }
 
-function getDateString(){
-	return new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+function processDatetime(datetime){
+	for (let regExp of [/[^\T]*$/g, /[0-9]*:.*?(\:)/g]){
+		datetime = regExp.exec(datetime);
+	}
+	
+	return datetime[0].replace(/:/g,'');
 }
 
-function redefinedTimesVars(options){
-	if (options['date'] == undefined || getDateString() > options['date'] || getDateString() < options['date']){
+function checkTime(n, options, values){
+	let day = values.day_of_year;
+	
+	if (options['time'] == undefined){
+		options['time'] = [];
 
-		options['date'] = undefined;
-		options['dataset'] = undefined;
+		for (let n = 0; n <= NUM_SETS; n++){
+			options['time'].push('0000');
+		}
+	}
 
+	if (options['date'] == undefined){
+		options['date'] = day;
+	}
+
+	if (day > options['date'] && options['time'] >= processDatetime(values.datetime)){
+		options['data'] = {};
 	}
 	
 	return options;
+}
+
+async function gFetch(resource, options = {}) {
+    const { timeout = 8000 } = options;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    
+    const response = await fetch(resource, {
+        ...options,
+        signal: controller.signal  
+    });
+
+
+    clearTimeout(id);
+    return response;
+}
+  
+async function awaitResponse(site) {
+    try {
+        const response = await gFetch(site, {timeout:8000});
+        const json = await response.json();
+        return json;
+    } catch (error) {
+        // timeouts if the request takes longer than 8 seconds
+        log(error);
+    }
 }
 
 // Return parsed URL (page address, arguments, and hash)
@@ -88,15 +137,15 @@ function getParsedURL(url){
 // create regular expressions for matching sites to block/allow
 function getParsedSites(arary){
 	let invalids = '';
-	let allows = [];
-	let blocks = [];
+	let allow = [];
+	let block = [];
 
 	for (let site of arary){
 		if(site !== ''){
-			if(site.charAt(0) == "-"){
+			if(site.charAt(0) == "+"){
 				let parsedSite = getParsedURL(regexURL(site.substr(1),false)).host;
 				if(parsedSite == null || isValidURL(parsedSite)){
-					blocks.push(parsedSite);
+					allow.push(parsedSite);
 				} else {
 					if (invalids == ''){
 						invalids = site;
@@ -106,7 +155,7 @@ function getParsedSites(arary){
 			} else {
 				let parsedSite = getParsedURL(regexURL(site,false)).host;
 				if(parsedSite == null || isValidURL(parsedSite)){
-					allows.push(parsedSite);
+					block.push(parsedSite);
 				} else {
 					if (invalids == ''){
 						invalids = site;
@@ -117,10 +166,7 @@ function getParsedSites(arary){
 		}
 	}
 
-	return {
-		sites:{block:blocks,allow:allows},
-		invalid:invalids
-	};
+	return {sites:{'+':allow,'-':block}, invalid:invalids};
 }
 
 function toFindDuplicates(arry){
@@ -128,19 +174,20 @@ function toFindDuplicates(arry){
 }
   
 function checkRepeatSites(database, sites){
+
 	let invalid = '';
-	for (let condition of ['block','allow']){
-		for (let site of sites[condition]){
+	for (let sign of ['-','+']){
+		for (let site of sites[sign]){
 			for (let n = 0; n <= 0; n++){
-				if(database[n][condition].includes(site)){
+				if(database[n][sign].includes(site)){
 					invalid = site;
-					break;		
+					break;
 				}
 			}
 			if(invalid == ''){
-				let duplicatedItems = toFindDuplicates(sites[condition]);
+				let duplicatedItems = toFindDuplicates(sites[sign]);
 				if(duplicatedItems.length > 0
-				   || sites[(condition == 'block')  ? 'allow' : 'block' ].includes(site)){
+				   || sites[(sign == '-')  ? '+' : '-' ].includes(site)){
 					invalid = (duplicatedItems.length > 0) ? duplicatedItems[0] : site ;
 					break;
 				}
@@ -172,14 +219,19 @@ function regexURL(site, dotCom){
 function isValidURL(site){
 	site.replace(/\w+:\/+/g,'');
 	return (/.+?(?=\.)/.test(site)
-				&& /^[A-Za-z][A-Za-z0-9]*/.test(site)
+				&& /^[A-Za-z0-9]*/.test(site)
 					&& (/\.([\s\S]{2})$/.test(site) || /\.([\s\S]{3})$/.test(site)));
 }
 
 // Check positive integer format
 //
-function checkPosIntFormat(value){
-	return /^[1-9][0-9]*$/.test(value);
+function checkPosIntFormat(mins){
+	return /^\d*$/.test(mins) && mins !== 00;
+}
+
+function checkTimePeriodsFormat(time) {
+	time = time.replace(/:/g,'');
+	return /^[0-2][0-3][0-5]\d*$/.test(time) && time !== 0000;
 }
 
 // Format a time in seconds to HH:MM:SS format
