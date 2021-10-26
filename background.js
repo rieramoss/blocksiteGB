@@ -35,11 +35,11 @@ function initTab(id) {
 // Retrieve options from local storage
 //
 function gotOptions() {
-	// log("gotOptions");
+	//log("gotOptions");
 	browser.storage.local.get().then(onGot, onError);
 
 	function onGot(options) {
-		// console.log(listObjectProperties(options, "options"));
+		//log(listObjectProperties(options, "options"));
 		gGotOptions = true;
 		gOptions = checkOptionsStructure(redefinedTimesVars(options));
 	}
@@ -52,7 +52,7 @@ function gotOptions() {
 // Save time dataset to local storage
 //
 function saveData() {
-	// log("saveData");
+	//log("saveData");
 	let options = {};
 	options['date'] = gOptions['date'];
 	options['dataset'] = gOptions['dataset'];
@@ -81,7 +81,7 @@ function blockSitesTimeSpend(n) {
 
 	for (url in dataset) {
 		if (isIn(n,url,'allow')) {
-			log('blockSitesTimeSpend: ' + url + ' / ' + dataset[url]);
+			//log('blockSitesTimeSpend: ' + url + ' / ' + dataset[url]);
 
 			secs = secs + dataset[url];
 		}
@@ -111,7 +111,7 @@ function checkTab(id, isRepeat) {
 	}
 
 	let url = gTabs[id].url;
-	// log("checkTab: " + id + " " + url + " " + isRepeat);
+	//log("checkTab: " + id + " " + url + " " + isRepeat);
 	
 	gTabs[id].blockable = BLOCKABLE_URL.test(url);
 	gTabs[id].clockable = CLOCKABLE_URL.test(url);
@@ -197,7 +197,7 @@ function clockPageTime(id, focus) {
 
 // update time dataset for specified page
 function updateTimeData(url, secsFocus) {
-	log("updateTimeData: " + url + " " + secsFocus);
+	//log("updateTimeData: " + url + " " + secsFocus);
 	
 	let host = getParsedURL(regexURL(url,false)).host;
 	let isIn = isInIteration(host,'allow');
@@ -260,7 +260,7 @@ function processTabs(active) {
 /*** EVENT HANDLERS BEGIN HERE ***/
 
 function handleClick(tab) {
-	log("handleClick: " + tab.id);
+	//log("handleClick: " + tab.id);
 
 	browser.runtime.openOptionsPage();	
 }
@@ -273,7 +273,7 @@ function handleMenuClick(info, tab) {
 }
 
 function handleTabCreated(tab) {
-	log("handleTabCreated: " + tab.id);
+	//log("handleTabCreated: " + tab.id);
 
 	initTab(tab.id);
 
@@ -285,7 +285,7 @@ function handleTabCreated(tab) {
 }
 
 function handleTabUpdated(tabId, changeInfo, tab) {
-	log("handleTabUpdated: " + tabId);
+	//log("handleTabUpdated: " + tabId);
 
 	initTab(tabId);
 
@@ -310,7 +310,7 @@ function handleTabUpdated(tabId, changeInfo, tab) {
 
 function handleTabActivated(activeInfo) {
 	let tabId = activeInfo.tabId;
-	log("handleTabActivated: " + tabId);
+	//log("handleTabActivated: " + tabId);
 
 	initTab(tabId);
 
@@ -323,7 +323,7 @@ function handleTabActivated(activeInfo) {
 }
 
 function handleTabRemoved(tabId, removeInfo) {
-	log("handleTabRemoved: " + tabId);
+	//log("handleTabRemoved: " + tabId);
 
 	if (!gGotOptions) {
 		return;
@@ -334,7 +334,7 @@ function handleTabRemoved(tabId, removeInfo) {
 
 function handleBeforeNavigate(navDetails) {
 	let tabId = navDetails.tabId;
-	log("handleBeforeNavigate: " + tabId);
+	//log("handleBeforeNavigate: " + tabId);
 
 	initTab(tabId);
 
@@ -351,7 +351,7 @@ function handleBeforeNavigate(navDetails) {
 }
 
 function handleWinFocused(winId) {
-	log("handleWinFocused: " + winId);
+	//log("handleWinFocused: " + winId);
 	gFocusWindowId = winId;
 }
 

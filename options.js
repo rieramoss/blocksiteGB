@@ -89,7 +89,8 @@ function preSaveOptions() {
 		let sites = document.querySelector(`#sites${n}`).value.split(/\s+/);
 		if(sites.length > 1){
 			sites = getParsedSites(sites);
-			console.log(sites);
+			//log(sites);
+			
 			if(checkSites(n,sites.invalid,false)){
 				sites = sites.sites;
 				if(checkSites(n,checkRepeatSites(options['sites'], sites),true)){
